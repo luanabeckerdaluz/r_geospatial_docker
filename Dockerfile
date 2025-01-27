@@ -1,22 +1,3 @@
-# ========================================================
-# -----> BUILD RGEO DOCKER IMAGE:
-#     $ docker build --no-cache --build-arg APSIMX_VERSION=7504 -t rgeo . 
-# -----> RUN RGEO ON LINUX:
-#     $ docker run -d -p 8787:8787 --name rgeo --restart always --volume /home/luana/rgeo_shared_folder:/home/rstudio/rgeo_shared_folder rgeo
-# -----> RUN RGEO ON WINDOWS:
-#     $ docker run -d -p 8787:8787 --name geo --restart always --volume C:\rgeo_shared_folder:/home/rstudio/rgeo_shared_folder rgeo
-# ========================================================
-
-# To code using this container, use the Remote Explorer >> Dev container feature of vscode
-
-# ========================================================
-# AFTER BUILD, CONFIGURE JUPYTER KERNEL:
-# 1. Open vscode on container using dev container
-# 2. Install jupyter extension on vscode
-# 3. Install IRKernel spec on terminal --> R -e "IRkernel::installspec()"
-# 3. Reload vscode window --> (Ctrl + Shift + P) >> Reload Window 
-# ========================================================
-
 ARG BASE_IMAGE=rocker/geospatial
 FROM ${BASE_IMAGE}
 
@@ -36,7 +17,10 @@ RUN apt-get -y update && \
                 libxslt1-dev \
                 micro \
                 nano \
+                python3-pip \
                 zenity
+
+USER rstudio
 
 # Install CroptimizR dependencies
 RUN R -e "options(warn=2); install.packages(repos='https://cran.r-project.org/', 'plotly')"
@@ -69,20 +53,20 @@ RUN R -e "options(warn=2); install.packages(repos='https://cran.r-project.org/',
 RUN R -e "options(warn=2); install.packages(repos='https://cran.r-project.org/', 'imputeTS')"
 RUN R -e "options(warn=2); install.packages(repos='https://cran.r-project.org/', 'geojsonio')"
 
+USER root
+
 # By default, install APSIMX 7504
 ARG APSIMX_VERSION=7504
 RUN wget https://builds.apsim.info/api/nextgen/download/${APSIMX_VERSION}/Linux -o /opt/install/apsim_${APSIMX_VERSION}.deb
 RUN dpkg -i /opt/install/apsim_${APSIMX_VERSION}.deb
 
 # Install Python pip and salib
-RUN apt install -y --no-install-recommends python3-pip
 RUN pip install salib
 
 # Install jupyter client
-RUN apt install -y --no-install-recommends --reinstall python3-pip
 RUN pip3 install jupyter
+
 # Install IRkernel to link jupyter to R kernel
 RUN R -e "options(warn=2); remotes::install_github('IRkernel/IRkernel'); IRkernel::installspec()"
-#=========================================
 
 USER rstudio
